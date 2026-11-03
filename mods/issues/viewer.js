@@ -164,9 +164,11 @@ export class Viewer {
     this.load(cx); cx.notify();
   }
 
+  // Anyone can write an issue, so its links open only when they're web links:
+  // a local path or a \\server path would start a program on Windows and macOS.
   link(url, cx) {
     const m = ISSUE_URL.exec(url);
-    if (m) this.go(m[1], Number(m[2]), cx); else openUrl(url);
+    if (m) this.go(m[1], Number(m[2]), cx); else if (/^https?:\/\//i.test(url)) openUrl(url);
   }
 
   // Runs `gh issue <args>` on this issue, then reloads it and tells the panel.
