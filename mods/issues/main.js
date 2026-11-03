@@ -241,6 +241,12 @@ export default class Issues extends View {
   scan(cx) {
     const terminal = (this.terminal = focused()?.terminal ?? this.terminal), repo = this.repo, store = this.stores[repo];
     if (this.scanning || !terminal || !store) return;
+    // A remote terminal (machine/t1) isn't read: reading it every few seconds, and the
+    // gh lookups that follow, made typing in it lag.
+    if (terminal.includes("/")) {
+      if (this.mentioned.length) { this.mentioned = []; cx.notify(); }
+      return;
+    }
     this.scanning = true;
     cx.spawn(async (cx) => {
       try {

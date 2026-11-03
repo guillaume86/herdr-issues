@@ -7,7 +7,7 @@ A GitHub issues panel for the [Herdr](https://herdr.dev) desktop app. It sits ne
 ![Issues panel](preview.png)
 
 - **Follows your focus.** The panel shows the issues of the GitHub repository of the focused terminal. Each space remembers its own repository, so a terminal outside any repository keeps showing that one.
-- **In this terminal.** Issue numbers (`#123`) and issue or pull request links on the focused terminal's screen are listed at the top, newest first, so an agent's "fixed #55" is one click away.
+- **In this terminal.** Issue numbers (`#123`) and issue or pull request links on the focused terminal's screen are listed at the top, newest first, so an agent's "fixed #55" is one click away. This covers local terminals only: reading a remote one every few seconds made typing in it lag.
 - **Open and closed, sorted your way.** Filter on open or closed, all or assigned to you, or by text, and sort the way GitHub does: newest, oldest, recently updated, least recently updated, most commented.
 - **Copy it.** Copy an issue's link, `owner/repo#123` or `#123` from the issue view, or by right-clicking it in the list.
 - **Fast.** Issues are cached per repository. After the first fetch, only what changed since the last sync is fetched, every 30 seconds while the panel is open.
