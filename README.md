@@ -54,3 +54,7 @@ The mod also works as a pane of its own: `herdr-app do pane.split --direction ri
 ## What it runs and stores
 
 The mod runs `gh` (on the machine of the space, for remote spaces) and `hc read` on the focused terminal to find issue numbers. It changes issues only when you press a button in the issue view. Its cache lives in `~/.config/herdr-app/data/issues/`, next to the icons, GitHub avatars and issue images it saves there (Herdr doesn't load images from a symlinked mod folder). Images on github.com are fetched with your `gh` token, which only goes to github.com.
+
+## License
+
+MIT
