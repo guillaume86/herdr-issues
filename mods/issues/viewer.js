@@ -1,6 +1,6 @@
 import { div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, TextView, TextareaState, Textarea } from "gpui-base";
-import { exec, theme, openOverlay, closeOverlay, setShared } from "herdr";
+import { exec, theme, openOverlay, closeOverlay, setShared, window } from "herdr";
 import { icons, icon, avatarPath, loadAvatar } from "./icons.js";
 import { blocks, picture, failed, loadPicture } from "./pictures.js";
 
@@ -28,6 +28,12 @@ export function ago(iso) {
 }
 
 export function openUrl(url) {
+  // Windows has neither xdg-open nor open: explorer opens a link in the default
+  // browser and a file in its app, given the path with backslashes.
+  if (window()?.platform === "windows") {
+    exec("explorer.exe", [/^[a-z][a-z\d+.-]+:/i.test(url) ? url : url.replace(/\//g, "\\")]).catch(() => null);
+    return;
+  }
   exec("sh", ["-c", 'xdg-open "$1" >/dev/null 2>&1 &', "sh", url]).catch(() => exec("open", [url]).catch(() => null));
 }
 
@@ -158,9 +164,11 @@ export class Viewer {
     this.load(cx); cx.notify();
   }
 
+  // Anyone can write an issue, so its links open only when they're web links:
+  // a local path or a \\server path would start a program on Windows and macOS.
   link(url, cx) {
     const m = ISSUE_URL.exec(url);
-    if (m) this.go(m[1], Number(m[2]), cx); else openUrl(url);
+    if (m) this.go(m[1], Number(m[2]), cx); else if (/^https?:\/\//i.test(url)) openUrl(url);
   }
 
   // Runs `gh issue <args>` on this issue, then reloads it and tells the panel.

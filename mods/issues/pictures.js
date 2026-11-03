@@ -1,5 +1,8 @@
 import * as fs from "fs/promises";
-import { appHome, exec } from "herdr";
+import { appHome, exec, window } from "herdr";
+
+// Windows has no sh on PATH; Git for Windows ships one, with sed and curl.
+const SH = () => (window()?.platform === "windows" ? "C:/Program Files/Git/bin/sh.exe" : "sh");
 
 // The markdown view draws no images, so the screenshots in issues are cut out
 // of the text and drawn between its runs, from a copy in the data folder.
@@ -74,7 +77,7 @@ export function loadPicture(url) {
         // Attachments of private repositories need the gh token. It goes only to
         // github.com, through stdin so it's never on a command line, and curl
         // drops it when GitHub redirects to its storage host.
-        const r = await exec("sh", ["-c", /^https:\/\/github\.com\//.test(url)
+        const r = await exec(SH(), ["-c", /^https:\/\/github\.com\//.test(url)
           ? 'gh auth token | sed "s/^/Authorization: token /" | curl -sfL --max-time 30 -H @- -o "$1" "$2" || { rm -f "$1"; exit 1; }'
           : 'curl -sfL --max-time 30 -o "$1" "$2" || { rm -f "$1"; exit 1; }', "sh", file, url]);
         if (r.code !== 0) throw new Error("download failed");
