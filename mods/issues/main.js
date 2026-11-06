@@ -2,7 +2,7 @@ import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { spaces, panes, focused, exec, hc, run, layout, theme, openOverlay, closeOverlay, notify, props, appHome, shared, setShared } from "herdr";
 import * as fs from "fs/promises";
-import { Viewer, FIELDS, copyMenu } from "./viewer.js";
+import { Viewer, FIELDS, copyMenu, labelChip } from "./viewer.js";
 import { icons, icon } from "./icons.js";
 
 // Where the focused pane is, as the Changes panel finds it. A focused mod pane
@@ -281,13 +281,17 @@ export default class Issues extends View {
       && (!q || `#${i.number} ${i.title}`.toLowerCase().includes(q))).sort(SORTS[sort()].by);
   }
 
+  // A mentioned issue only knows its title: its labels come from the list when it has them.
   row(i, t, where = "issue") {
     const closed = i.state && i.state !== "OPEN";
+    const labels = i.labels ?? this.issues().find((x) => x.number === i.number)?.labels ?? [];
     return h_flex().id(`${where}-${i.number}`).flex_none().px(10).py(6).gap(8).items_start().rounded(7).cursor_pointer()
       .hover((s) => s.bg(t.hover)).on_click(() => this.open(i.number))
       .on_mouse_down("right", () => copyMenu({ repo: this.repo, number: i.number, title: i.title, url: i.url }, "pointer"))
       .child(div().flex_none().w(40).text_color(closed ? t.ansi5 : t.dim).child(`#${i.number}`))
-      .child(div().flex_1().min_w(0).text_color(closed && where !== "issue" ? t.muted : t.foreground).child(i.title));
+      .child(v_flex().flex_1().min_w(0).gap(4)
+        .child(div().text_color(closed && where !== "issue" ? t.muted : t.foreground).child(i.title))
+        .when(labels.length > 0, (e) => e.child(h_flex().flex_wrap().gap(4).children(labels.map((l) => labelChip(l, t, true))))));
   }
 
   heading(label, t) {
