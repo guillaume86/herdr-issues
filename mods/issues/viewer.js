@@ -101,13 +101,54 @@ export function copyMenu({ repo, number, title, url }, at) {
     props: { copyMenu: { url: url ?? `https://github.com/${repo}/issues/${number}`, ref: `${repo}#${number}`, number: `#${number}`, title: title ? `#${number} ${title}` : null } } });
 }
 
-// A label as GitHub tints it: its color faint behind, its color as text unless too dark to read.
-// Small, it fits under an issue's title in the panel's list.
+const rgbOf = (hex) => [0, 2, 4].map((i) => parseInt(hex.replace("#", "").slice(i, i + 2), 16) || 0);
+const lightnessOf = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+const clamp = (x, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, x));
+
+function hsl([r, g, b]) {
+  [r, g, b] = [r / 255, g / 255, b / 255];
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d === 0) return [0, 0, l * 100];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s * 100, l * 100];
+}
+
+const hex2 = (x) => Math.round(clamp(x) * 255).toString(16).padStart(2, "0");
+
+// An HSL color (degrees, percents) and an alpha as #rrggbbaa, the form styles take.
+function hslHex(h, s, l, a = 1) {
+  s = clamp(s / 100); l = clamp(l / 100);
+  const k = (n) => (n + h / 30) % 12, m = s * Math.min(l, 1 - l);
+  const f = (n) => l - m * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return `#${hex2(f(0))}${hex2(f(8))}${hex2(f(4))}${hex2(a)}`;
+}
+
+// The theme is dark unless its background is light; an unreadable background counts as dark.
+const isDark = (t) => !/^#?[0-9a-f]{6}/i.test(t.background ?? "") || lightnessOf(rgbOf(t.background)) < 0.5;
+
+// A label's colors as GitHub's own CSS works them out (Primer's IssueLabel), so a
+// label looks the same here as on github.com.
+// Dark: the color faint behind (18%), the text in the color lightened in HSL until
+// it reads (below 0.6 perceived lightness), a 30% border of that.
+// Light: the color solid behind, black or white text by its lightness, and a darker
+// border only for colors near white.
+export function labelColors(color, dark) {
+  color = color.replace("#", "").toLowerCase();
+  const rgb = rgbOf(color), lum = lightnessOf(rgb), [h, s, l] = hsl(rgb);
+  if (dark) {
+    const switchOn = clamp((lum - 0.6) * -1000), up = (0.6 - lum) * 100 * switchOn;
+    return { bg: `#${color}2e`, fg: hslHex(h, s, l + up), border: hslHex(h, s, l + up, 0.3) };
+  }
+  const white = clamp((lum - 0.453) * -1000), borderAlpha = clamp((lum - 0.96) * 100);
+  return { bg: `#${color}`, fg: white > 0.5 ? "#ffffff" : "#000000", border: hslHex(h, s, l - 25, borderAlpha) };
+}
+
+// A label as GitHub draws it. Small, it fits under an issue's title in the panel's list.
 export function labelChip(l, t, small = false) {
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(l.color.slice(i, i + 2), 16));
-  const light = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.35;
-  return div().h(small ? 16 : 20).px(small ? 6 : 7).flex_none().flex().items_center().rounded(small ? 8 : 10).border_1().border_color(`#${l.color}66`).bg(`#${l.color}2e`)
-    .text_size(small ? 10 : 12).font_semibold().text_color(light ? `#${l.color}` : t.foreground).child(l.name);
+  const c = labelColors(l.color, isDark(t));
+  return div().h(small ? 16 : 20).px(small ? 6 : 7).flex_none().flex().items_center().rounded(small ? 8 : 10).border_1().border_color(c.border).bg(c.bg)
+    .text_size(small ? 10 : 12).font_semibold().text_color(c.fg).child(l.name);
 }
 
 // One issue in a dialog: { repo, number, on, data?, me? } from the panel. With
